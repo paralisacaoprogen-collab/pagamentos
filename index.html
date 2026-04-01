@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XFC - Arena Sorteio Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif; 
+            color: white; 
+            background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.95)), url('XFC.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        [x-cloak] { display: none !important; }
+        .pos-GOL { background: #ef4444; } 
+        .pos-ZAG { background: #3b82f6; }
+        .pos-MEI { background: #fbbf24; color: black; }
+        .pos-ATA { background: #f97316; }
+        .animate-list { animation: slideIn 0.3s ease-out forwards; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body x-data="sorteioApp()" x-init="init()">
+
+    <header class="bg-yellow-500 p-4 sticky top-0 z-50 shadow-2xl">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="font-extrabold italic text-xl tracking-tighter uppercase text-black">XFC ARENA</h1>
+            <div class="flex gap-2 items-center">
+                <span class="text-[10px] bg-black/20 px-2 py-1 rounded font-bold text-black" x-text="jogadores.length + ' JOGADORES'"></span>
+                <button @click="limparTudo()" class="text-[10px] bg-black text-white px-2 py-1 rounded font-bold uppercase hover:bg-zinc-800 transition-colors">Zerar Lista</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="fixed right-4 top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-3">
+        <div x-data="{ open: false }" class="relative flex items-center justify-end">
+            <div x-show="open" x-transition @click.away="open = false" class="absolute right-14 bg-zinc-900 border border-yellow-500 p-4 rounded-2xl w-64 shadow-2xl">
+                <h4 class="text-yellow-500 font-black text-sm uppercase mb-1">MENSALISTAS ⚽</h4>
+                <div class="text-[10px] text-red-500 mb-2 font-bold uppercase italic bg-red-500/10 py-1 rounded px-2 text-center">⚠️ PAGAR ATÉ DIA 20</div>
+                <button @click="navigator.clipboard.writeText('00020101021126360014br.gov.bcb.pix011442180353000160520400005303986540570.005802BR5920ALMEIDA REPRESENTACO6009SAO PAULO62070503***6304C43E'); alert('PIX Mensalista Copiado!')"
+                        class="w-full bg-yellow-500 text-black text-[10px] font-black py-2 rounded-lg uppercase">Copiar PIX (R$ 70,00)</button>
+            </div>
+            <button @click="open = !open" class="w-12 h-12 bg-yellow-500 rounded-2xl flex items-center justify-center border-2 border-black shadow-lg"><span class="text-black font-black text-xl">M</span></button>
+        </div>
+        <div x-data="{ open: false }" class="relative flex items-center justify-end">
+            <div x-show="open" x-transition @click.away="open = false" class="absolute right-14 bg-zinc-900 border border-cyan-500 p-4 rounded-2xl w-64 shadow-2xl">
+                <h4 class="text-cyan-500 font-black text-sm uppercase mb-1">MANTENEDORES 🛡️</h4>
+                <div class="text-[10px] text-red-500 mb-2 font-bold uppercase italic bg-red-500/10 py-1 rounded px-2 text-center">⚠️ PAGAR ATÉ DIA 20</div>
+                <button @click="navigator.clipboard.writeText('00020101021126360014br.gov.bcb.pix0114421803530001605204000053039865406100.005802BR5920ALMEIDA REPRESENTACO6009SAO PAULO62070503***63041FFD'); alert('PIX Mantenedor Copiado!')"
+                        class="w-full bg-cyan-500 text-black text-[10px] font-black py-2 rounded-lg uppercase">Copiar PIX (R$ 100,00)</button>
+            </div>
+            <button @click="open = !open" class="w-12 h-12 bg-cyan-500 rounded-2xl flex items-center justify-center border-2 border-black shadow-lg"><span class="text-black font-black text-xl">🛡️</span></button>
+        </div>
+    </div>
+
+    <main class="max-w-4xl mx-auto p-4 space-y-6">
+        <div x-show="etapa === 'cadastro'" class="space-y-6">
+            <button @click="showModalCadastro = true" class="w-full bg-yellow-500 text-black py-6 rounded-2xl font-black text-2xl shadow-lg active:scale-95 transition-all uppercase">⚽ ENTRAR NA LISTA</button>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <template x-for="jogador in jogadores" :key="jogador.id">
+                    <div :class="prazoExpirado() && (jogador.tipo !== 'visitante') ? 'border-red-600 opacity-60' : 'border-yellow-500'" class="glass-card p-4 rounded-2xl flex justify-between items-center animate-list border-l-4">
+                        <div class="flex items-center gap-4">
+                            <div :class="'pos-' + jogador.posicao" class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs" x-text="jogador.posicao"></div>
+                            <div>
+                                <div class="font-bold text-base uppercase text-yellow-500" x-text="jogador.nome"></div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase">
+                                    <span x-text="jogador.tipo"></span>
+                                    <template x-if="prazoExpirado() && (jogador.tipo !== 'visitante')">
+                                        <span class="text-red-500 ml-2">❌ FORA DO PRAZO</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <button x-show="jogadores.length >= 4" 
+                    @click="podeSortear() ? sortearTimes() : alert('Sorteio bloqueado! Mensalistas/Mantenedores pendentes após o dia 20.')" 
+                    :class="podeSortear() ? 'bg-white text-black' : 'bg-red-900 text-white cursor-not-allowed opacity-50'"
+                    class="w-full py-4 rounded-2xl font-black text-xl shadow-lg transition-all uppercase">
+                <span x-text="podeSortear() ? 'SORTEAR TIMES ⚡' : '🔒 BLOQUEADO (DIA 20)'"></span>
+            </button>
+        </div>
+
+        <div x-show="etapa === 'resultado'" class="space-y-6" x-cloak>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <template x-for="(time, index) in timesGerados">
+                    <div class="glass-card rounded-3xl overflow-hidden border-2 border-yellow-500/30">
+                        <div class="bg-yellow-500 p-3 font-black text-center uppercase text-black" x-text="'Time ' + (index + 1)"></div>
+                        <div class="p-4 space-y-2">
+                            <template x-for="jogador in time">
+                                <div class="bg-white/5 p-3 rounded-xl flex justify-between items-center">
+                                    <span class="font-bold uppercase" x-text="jogador.nome"></span>
+                                    <span class="text-[10px] text-yellow-500 font-bold" x-text="jogador.posicao"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <button @click="etapa = 'cadastro'" class="w-full bg-zinc-800 py-4 rounded-2xl font-bold uppercase text-xs text-yellow-500">Voltar para a Lista</button>
+        </div>
+    </main>
+
+    <section class="max-w-4xl mx-auto p-4 mt-10 border-t border-white/10">
+        <h2 class="text-center font-black text-yellow-500 uppercase text-xs mb-6 tracking-widest">Painel Administrativo</h2>
+        <div x-show="!acessoDiretoria" class="glass-card p-6 rounded-3xl text-center max-w-sm mx-auto">
+            <input type="password" x-model="senhaDiretoria" placeholder="Senha da Diretoria" class="w-full bg-black border border-white/20 p-3 rounded-xl text-center mb-3 text-white outline-none">
+            <button @click="verificarSenha()" class="w-full bg-zinc-800 text-yellow-500 py-3 rounded-xl font-black uppercase text-xs">Acessar Ciclo Mensal</button>
+        </div>
+        <div x-show="acessoDiretoria" x-cloak class="space-y-4">
+            <div class="bg-yellow-500 p-4 rounded-2xl flex justify-between items-center text-black">
+                <h3 class="font-black uppercase italic">Lista de Pagos - <span x-text="getMesNome()"></span></h3>
+                <button @click="acessoDiretoria = false; senhaDiretoria = ''" class="text-[10px] bg-black text-white px-2 py-1 rounded">Sair</button>
+            </div>
+            <div class="grid gap-2">
+                <template x-for="pago in jogadores.filter(j => j.tipo !== 'visitante')" :key="pago.id">
+                    <div class="glass-card p-4 rounded-xl flex justify-between items-center border-l-4 border-green-500">
+                        <span class="font-black uppercase text-sm" x-text="pago.nome"></span>
+                        <span class="text-green-500 font-black text-[10px]">CONFERIDO ✅</span>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <div x-show="showModalCadastro" class="fixed inset-0 bg-black/95 z-[150] flex items-center justify-center p-4 backdrop-blur-sm" x-cloak>
+        <div class="glass-card p-8 rounded-3xl w-full max-w-sm space-y-4 border border-yellow-500">
+            <h3 class="font-black text-xl text-yellow-500 text-center uppercase">Cadastro XFC</h3>
+            <input x-model="novoJogador.nome" type="text" placeholder="Seu Nome" class="w-full bg-black p-4 rounded-xl border border-yellow-500/30 text-white uppercase font-bold outline-none">
+            <div class="grid grid-cols-2 gap-2">
+                <select x-model="novoJogador.posicao" class="bg-black p-3 rounded-xl border border-yellow-500/30 text-white text-sm">
+                    <option value="GOL">Goleiro</option><option value="ZAG">Zagueiro</option><option value="MEI">Meio-Campo</option><option value="ATA">Atacante</option>
+                </select>
+                <select x-model="novoJogador.tipo" class="bg-black p-3 rounded-xl border border-yellow-500/30 text-white text-sm">
+                    <option value="visitante">Visitante</option><option value="mensalista">Mensalista</option><option value="mantenedor">Mantenedor</option>
+                </select>
+            </div>
+            <button @click="adicionarJogador()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase">Salvar na Lista</button>
+            <button @click="showModalCadastro = false" class="w-full text-zinc-500 text-xs font-bold uppercase">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://api.npoint.io/984e78ad13082606114b";
+        function sorteioApp() {
+            return {
+                etapa: 'cadastro',
+                showModalCadastro: false,
+                jogadores: [],
+                timesGerados: [],
+                senhaDiretoria: '',
+                acessoDiretoria: false,
+                novoJogador: { nome: '', nivel: 2, posicao: 'MEI', tipo: 'visitante' },
+
+                async init() {
+                    await this.verificarNovoCiclo();
+                    await this.syncData();
+                    setInterval(() => this.syncData(), 5000);
+                },
+
+                async verificarNovoCiclo() {
+                    const hoje = new Date();
+                    const mesAno = `${hoje.getMonth() + 1}-${hoje.getFullYear()}`;
+                    if (localStorage.getItem('xfc_ciclo') !== mesAno) {
+                        await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify([]) });
+                        localStorage.setItem('xfc_ciclo', mesAno);
+                        this.jogadores = [];
+                    }
+                },
+
+                async syncData() {
+                    try {
+                        const res = await fetch(API_URL);
+                        const data = await res.json();
+                        this.jogadores = Array.isArray(data) ? data : [];
+                    } catch (e) {}
+                },
+
+                async adicionarJogador() {
+                    if (!this.novoJogador.nome.trim()) return alert("Nome vazio!");
+                    const novo = { ...this.novoJogador, id: Date.now(), nome: this.novoJogador.nome.toUpperCase() };
+                    const novaLista = [...this.jogadores, novo];
+                    await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(novaLista) });
+                    this.jogadores = novaLista;
+                    this.showModalCadastro = false;
+                    this.novoJogador.nome = '';
+                    if(novo.tipo === 'visitante') alert("PIX Visitante: R$ 15,00. Vaga garantida após o envio do comprovante.");
+                },
+
+                prazoExpirado() { return new Date().getDate() > 20; },
+
+                podeSortear() {
+                    if (this.prazoExpirado()) {
+                        return !this.jogadores.some(j => j.tipo !== 'visitante');
+                    }
+                    return this.jogadores.length >= 4;
+                },
+
+                verificarSenha() {
+                    if (this.senhaDiretoria === 'Diretoria') this.acessoDiretoria = true;
+                    else alert("Senha incorreta!");
+                },
+
+                getMesNome() {
+                    return new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date());
+                },
+
+                sortearTimes() {
+                    let lista = [...this.jogadores].sort(() => Math.random() - 0.5);
+                    const t1 = [], t2 = [];
+                    lista.forEach((j, i) => { if (i % 2 === 0) t1.push(j); else t2.push(j); });
+                    this.timesGerados = [t1, t2];
+                    this.etapa = 'resultado';
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#ffffff'] });
+                },
+
+                async limparTudo() {
+                    if(confirm("Zerar lista para todos?")) {
+                        await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify([]) });
+                        this.jogadores = [];
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
